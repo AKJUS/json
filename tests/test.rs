@@ -2457,6 +2457,39 @@ fn test_boxed_raw_value() {
 
 #[cfg(feature = "raw_value")]
 #[test]
+fn test_raw_value_from_string_unchecked() {
+    #[derive(Serialize)]
+    struct Wrapper {
+        a: i8,
+        b: Box<RawValue>,
+        c: i8,
+    }
+
+    let json = r#"{"foo":[1,2,3],"bar":"\"escaped\""}"#.to_owned();
+    let checked = RawValue::from_string(json.clone()).unwrap();
+    let unchecked = unsafe { RawValue::from_string_unchecked(json) };
+    assert_eq!(checked.get(), unchecked.get());
+
+    let wrapper = Wrapper {
+        a: 1,
+        b: unchecked,
+        c: 3,
+    };
+    let wrapper_to_string = serde_json::to_string(&wrapper).unwrap();
+    assert_eq!(
+        r#"{"a":1,"b":{"foo":[1,2,3],"bar":"\"escaped\""},"c":3}"#,
+        wrapper_to_string,
+    );
+
+    // A string with excess capacity is preserved as-is.
+    let mut spare = String::with_capacity(64);
+    spare.push_str("[1,2,3]");
+    let raw = unsafe { RawValue::from_string_unchecked(spare) };
+    assert_eq!("[1,2,3]", raw.get());
+}
+
+#[cfg(feature = "raw_value")]
+#[test]
 fn test_raw_invalid_utf8() {
     let j = &[b'"', b'\xCE', b'\xF8', b'"'];
     let value_err = serde_json::from_slice::<Value>(j).unwrap_err();

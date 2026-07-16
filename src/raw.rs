@@ -191,6 +191,40 @@ impl RawValue {
         Ok(Self::from_owned(json.into_boxed_str()))
     }
 
+    /// Convert an owned `String` of JSON data to an owned `RawValue` without
+    /// checking that it contains valid JSON.
+    ///
+    /// This is the unchecked counterpart of [`RawValue::from_string`], for
+    /// strings that are already known to be valid JSON, such as the output of
+    /// another JSON serializer. Unlike `from_string`, it does not re-parse the
+    /// string; the only cost is `String::into_boxed_str`.
+    ///
+    /// # Safety
+    ///
+    /// The string passed in must contain a single well-formed JSON value with
+    /// no leading or trailing whitespace. `RawValue` is written verbatim into
+    /// JSON output wherever it is embedded, and other code (including unsafe
+    /// code) is allowed to rely on `RawValue` upholding this invariant, in the
+    /// same way that unsafe code may rely on `str` containing valid UTF-8.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use serde_json::value::RawValue;
+    ///
+    /// let json = serde_json::to_string(&[1, 2, 3])?;
+    ///
+    /// // SAFETY: `json` was produced by serde_json's own serializer, so it is
+    /// // a single well-formed JSON value without surrounding whitespace.
+    /// let raw = unsafe { RawValue::from_string_unchecked(json) };
+    ///
+    /// assert_eq!(raw.get(), "[1,2,3]");
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    pub unsafe fn from_string_unchecked(json: String) -> Box<Self> {
+        Self::from_owned(json.into_boxed_str())
+    }
+
     /// Access the JSON text underlying a raw value.
     ///
     /// # Example

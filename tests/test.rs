@@ -2488,6 +2488,23 @@ fn test_raw_value_from_string_unchecked() {
     assert_eq!("[1,2,3]", raw.get());
 }
 
+// The debug_assert! inside from_string_unchecked is compiled out of release
+// builds, so #[should_panic] can only be exercised under debug (which is the
+// default `cargo test` profile).
+#[cfg(all(feature = "raw_value", debug_assertions))]
+#[test]
+#[should_panic = "from_string_unchecked"]
+fn test_raw_value_from_string_unchecked_debug_asserts_whitespace() {
+    let _ = unsafe { RawValue::from_string_unchecked(" 42".to_owned()) };
+}
+
+#[cfg(all(feature = "raw_value", debug_assertions))]
+#[test]
+#[should_panic = "from_string_unchecked"]
+fn test_raw_value_from_string_unchecked_debug_asserts_well_formed() {
+    let _ = unsafe { RawValue::from_string_unchecked("[1,".to_owned()) };
+}
+
 #[cfg(feature = "raw_value")]
 #[test]
 fn test_raw_invalid_utf8() {

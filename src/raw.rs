@@ -207,6 +207,10 @@ impl RawValue {
     /// code) is allowed to rely on `RawValue` upholding this invariant, in the
     /// same way that unsafe code may rely on `str` containing valid UTF-8.
     ///
+    /// In debug builds this contract is checked with a `debug_assert!` that
+    /// re-parses the input; the check is compiled out in release builds, so
+    /// only release performance matches the "no re-parse" guarantee above.
+    ///
     /// # Example
     ///
     /// ```
@@ -222,6 +226,11 @@ impl RawValue {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     pub unsafe fn from_string_unchecked(json: String) -> Box<Self> {
+        debug_assert!(
+            crate::from_str::<&Self>(&json).is_ok_and(|v| v.json.len() == json.len()),
+            "from_string_unchecked: input is not a single well-formed JSON value \
+             with no leading or trailing whitespace",
+        );
         Self::from_owned(json.into_boxed_str())
     }
 
